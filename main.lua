@@ -39,6 +39,9 @@ require 'Paddle'
 -- but which will mechanically function very differently
 require 'Ball'
 
+-- our paddle AI used to get the change in y of our paddle
+
+require 'PaddleAI'
 -- size of our actual window
 WINDOW_WIDTH = 1200
 WINDOW_HEIGHT = 600
@@ -90,7 +93,7 @@ function love.load()
 
     -- initialize our player paddles; make them global so that they can be
     -- detected by other functions and modules
-    player1 = Paddle(10, 30, 5, 20)
+    player1 = Paddle(10, 30, 5, 50)
     player2 = Paddle(VIRTUAL_WIDTH - 10, VIRTUAL_HEIGHT - 30, 5, 20)
 
     -- place a ball in the middle of the screen
@@ -122,6 +125,7 @@ end
     about calling out to `push` to handle the resizing. Takes in a `w` and
     `h` variable representing width and height, respectively.
 ]]
+
 function love.resize(w, h)
     push:resize(w, h)
 end
@@ -135,6 +139,7 @@ end
     across system hardware.
 ]]
 function love.update(dt)
+    
     if gameState == 'serve' then
         -- before switching to play, initialize ball's velocity based
         -- on player who last scored
@@ -158,7 +163,7 @@ function love.update(dt)
             else
                 ball.dy = math.random(10, 150)
             end
-
+            -- set opposite player in play
             sounds['paddle_hit']:play()
         end
         if ball:collides(player2) then
@@ -171,7 +176,6 @@ function love.update(dt)
             else
                 ball.dy = math.random(10, 150)
             end
-
             sounds['paddle_hit']:play()
         end
 
@@ -240,16 +244,19 @@ function love.update(dt)
     else
         player1.dy = 0
     end
-
-    -- player 2
-    if love.keyboard.isDown('up') then
-        player2.dy = -PADDLE_SPEED
-    elseif love.keyboard.isDown('down') then
-        player2.dy = PADDLE_SPEED
-    else
-        player2.dy = 0
+    --[[
+        PLAYER 2 - ARTIFICIAL INTELLIGENCE
+        -- get the current position the ball 
+        -- calculate the position on the y axis
+        -- move the paddle towards the position
+        -- if the paddle is within the position 
+        -- stop moving
+    ]]
+    --- get the dy from paddle AI
+    if ball.dx > 0 then 
+        paddleAI = PaddleAI(ball,player2)
+        player2.dy = paddleAI:getPaddleDY()
     end
-
     -- update our ball based on its DX and DY only if we're in play state;
     -- scale the velocity by dt so movement is framerate-independent
     if gameState == 'play' then
@@ -266,6 +273,7 @@ end
     separate function (`love.keyboard.isDown`). Useful for when we want
     things to happen right away, just once, like when we want to quit.
 ]]
+
 function love.keypressed(key)
     -- `key` will be whatever key this callback detected as pressed
     if key == 'escape' then
@@ -308,7 +316,7 @@ function love.draw()
     push:apply('start')
 
     love.graphics.clear(40/255, 45/255, 52/255, 1)
-    
+
     -- render different things depending on which part of the game we're in
     if gameState == 'start' then
         -- UI messages
